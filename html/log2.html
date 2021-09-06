@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<script>
+    var chart_title = ''; //'5월 24일 시간별 전력량(KWh)';
+    var load_array = []; //[1.264, 1.299, 1.218, 1.277, 1.225, 1.275, 1.205, 1.207, 3.238, 5.4, 5.658, 5.414, 2.975, 6.2, 6.294, 6.602, 19.716, 16.747, 3.452, 2.994, 2.301, 2.152, 2, 1.284];
+    var solar_array = []; //[0, 0, 0, 0, 0, 0.049, 0.267, 0.668, 0.975, 1.341, 1.45, 2.433, 2.101, 1.635, 1.313, 1.538, 0.601, 0.332, 0.123, 0.009, 0, 0, 0, 0];
+    var grid_array = []; //[1.264, 1.299, 1.218, 1.277, 1.225, 1.226, 0.938, 0.539, 2.263, 4.059, 4.208, 2.981, 0.874, 4.565, 4.981, 5.064, 19.115, 16.415, 3.329, 2.985, 2.301, 2.152, 2, 1.284];
+    var batt_array = []; //[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ];
+    var sell_array = []; //[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ];
+    var solar_array_total = 0; //14.835;
+    var load_array_total = 0; //102.397;
+    var sell_array_total = 0; //0.0;
+    var grid_array_total = 0; //87.562;
+    var batt_array_total = 0; //0.0;
+</script>
+
+<head>
+    <title>SNPG ESS</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script> -->
+    <script src="js_module/jquery-3.2.1.min.js"></script>
+
+    <!-- 머테리얼라이즈 -->
+    <!-- Compiled and minified CSS -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/css/materialize.min.css"> -->
+    <link href="/js_module/materialize.min.css" rel="stylesheet">
+
+    <!-- Compiled and minified JavaScript -->
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/js/materialize.min.js"></script> -->
+    <script src="/js_module/materialize.min.js"></script>
+
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
+    <!-- Chart JS -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script> -->
+    <script src="/js_module/Chart.min.js"></script>
+    <script src="/js_module/Chart.bundle.min.js"></script>
+
+    <!-- moment -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment-with-locales.min.js"></script> -->
+    <script src="/js_module/moment-with-locales.min.js"></script>
+
+
+    <!-- Date Picker -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.js"></script> -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css"> -->
+    <!-- <script src="js/moment-with-locales.min.js"></script> -->
+    <script src="js_module/datepicker.min.js"></script>
+
+    <link rel="stylesheet" href="js_module/datepicker.min.css">
+
+
+    <style>
+        td {
+            padding: 1px;
+        }
+        
+        th {
+            padding: 1px;
+            font-weight: 500
+        }
+        
+        #log_daily_div,
+        #log_monthly_div
+                        {
+            margin: 0px;
+            padding: 3px
+        }
+        
+        #date_day,
+        #date_month
+                        {
+            margin: 0px;
+            padding: 3px
+        }
+        
+        #daily_solar,
+        #daily_load,
+        #daily_grid,
+        #daily_batt {
+            height: 63px;
+            margin: 0px;
+            padding: 1px
+        }
+        
+        #daily_solar_div,
+        #daily_load_div,
+        #daily_grid_div,
+        #daily_batt_div {
+            margin: 0px;
+            padding: 3px
+        }
+        
+        #daily_solar_title,
+        #daily_load_title,
+        #daily_grid_title,
+        #daily_batt_title {
+            padding: 2px;
+            margin: 0px;
+        }
+        
+        @media screen and (min-width: 480px) {
+            td {
+                padding: 7px;
+            }
+            th {
+                padding: 7px;
+                font-weight: 500
+            }
+            #log_daily_title,
+            #log_monthly_title
+                            {
+                margin: 0px;
+                padding: 12px
+            }
+            #date_day,
+            #date_month
+                            {
+                margin: 0px;
+                padding: 3px
+            }
+            #daily_solar,
+            #daily_load,
+            #daily_grid,
+            #daily_batt {
+                padding: 2px;
+                margin: 0px;
+                height: 55px;
+            }
+            #daily_solar_div,
+            #daily_load_div,
+            #daily_grid_div,
+            #daily_batt_div,
+            {
+                margin: 0px;
+                padding: 10px;
+            }
+            #daily_solar_title,
+            #daily_load_title,
+            #daily_grid_title,
+            #daily_batt_title {
+                padding: 12px;
+                margin: 0px;
+            }
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <!-- 엄마 div  max-width: 1200px; -->
+    <div class="container" style="margin:auto;width:100%; max-width: 1000px; padding:0px">
+        <!-- 상단 NAV바 -->
+        <nav>
+            <div class="nav-wrapper">
+                <a href="http://www.snpglobal.co.kr/" class="brand-logo"><img src="logo.png" style="margin: 4px"></a>
+                <a href="#" data-activates="mobile-demo" class="button-collapse"><i class="material-icons">menu</i></a>
+                <ul class="right hide-on-med-and-down">
+                    <li><a href="ess.html"><i class="material-icons left">insert_chart</i>ESS Current</a></li>
+                    <li class="active"><a href="log2.html"><i class="material-icons left">timeline</i>ESS LOG</a></li>
+                </ul>
+                <ul class="side-nav" id="mobile-demo">
+                    <li><a href="ess.html"><i class="material-icons left">insert_chart</i>ESS Current</a></li>
+                    <li class="active"><a href="log2.html"><i class="material-icons left">timeline</i>ESS LOG</a></li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <!-- 엄마 div  max-width: 1200px; -->
+    <div class="container" style="margin:auto;width:97%; max-width: 1000px; padding:0px">
+
+        <!-- 상단 제목 !-->
+        <p class="flow-text" style="margin:3px;font-style:normal;font-weight:800">LOG</p>
+
+        <!-- 하단 일간 월간  데이트 피커 -->
+        <div class="row" style="margin: 0px;text-align: center;padding-left: 1px; padding-right: 1px; padding : 0px;line-height:1.1em">
+            <div class="col s6" id="log_daily_div">
+                <div class="z-depth-1 yellow lighten-5" id="log_daily_title">Daily</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="log_daily_input">
+
+                    <input style="width: 70%" id="date_day" type="text" class="datepicker-here" data-language='ko' data-min-view="days" data-view="days">
+                    <button type="button" id="date_day_button">확인</button>
+                </div>
+            </div>
+            <div class="col s6" id="log_monthly_div">
+                <div class="z-depth-1 yellow lighten-5" id="log_monthly_title">Monthly</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="log_monthly_input">
+                    <input style="width: 70%" id="date_month" type="text" class="datepicker-here" data-language='ko' data-min-view="months" data-view="months" data-date-format="MM yyyy">
+                    <button type="button" id="date_month_button">확인</button>
+                </div>
+            </div>
+            <!--<div class="col s4" id="log_annual_div">
+                <div class="z-depth-1 yellow lighten-5" id="log_annual_title">Annual</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="log_annual_input">
+                    <input style="width: 70%" id="date_year" type="text" class="datepicker-here" data-language='ko' data-min-view="years" data-view="years" data-date-format="yyyy">
+                    <button type="button" id="date_year_button">확인</button>
+                </div>
+            </div>-->
+        </div>
+        <br>
+        <div class="row" style="margin: 0px;text-align: center;padding-left: 1px; padding-right: 1px; padding : 0px;line-height:1.1em">
+            <div class="col s4" id="daily_solar_div">
+                <div class="z-depth-1 yellow lighten-5" id="daily_solar_title">Solar</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="daily_solar">
+                    <i class="small material-icons" style="color: rgb(255, 204, 0);">wb_sunny</i><br>
+                    <i class="flow-text" id='solar_total_label'>- KWh</i>
+                </div>
+            </div>
+            <div class="col s4" id="daily_load_div">
+                <div class="z-depth-1 red lighten-5" id="daily_load_title">Load</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="daily_load">
+                    <i class="small material-icons" style="color: rgb(255, 92, 51);">wb_incandescent</i><br>
+                    <i class="flow-text" id='load_total_label'>- KWh</i>
+                </div>
+            </div>
+            <div class="col s4" id="daily_grid_div">
+                <div class="z-depth-1 indigo lighten-5" id="daily_grid_title">Grid</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="daily_grid">
+                    <i class="small material-icons" style="color: rgb(51, 133, 255);">power</i><br>
+                    <i class="flow-text" id='grid_total_label'>- KWh</i>
+                </div>
+            </div>
+            <!--
+            <div class="col s3" id="daily_batt_div">
+                <div class="z-depth-1 green lighten-4" id="daily_batt_title">Battery</div>
+                <div class="z-depth-1 white" style="margin: 0px;text-align: center;padding:0px" id="daily_batt">
+                    <i class="small material-icons" style="color: rgb(115, 230, 0);">battery_std</i><br>
+                    <i class="flow-text" id='batt_total_label'>- KWh</i>
+                </div>
+            </div>
+            -->
+        </div>
+
+
+        <p class="flow-text" id="chartname" style="margin:3px;padding: 1px;font-style:normal;font-weight:400; padding-top:10px">Chart</p>
+        <!-- 하단 차트 -->
+        <div class="z-depth-1 white chart-container" style="margin: 0px;text-align: center;padding:0px; position: relative; height:40vh; width: 95vw; max-width: 1000px">
+            <canvas style="max-width: 1000px" id="myChart"></canvas>
+        </div>
+
+
+
+
+    </div>
+    <!-- 모든걸 다 싸고있는 메인 div end-->
+
+</body>
+
+
+<script>
+    var auto = true;
+    var d2 = new Date;
+    var hour = d2.getHours();
+    var daylabel = document.getElementById("today_label");
+
+    function displayDate() {
+        document.getElementById("demo").innerHTML = Date();
+    }
+    $(document).ready(function() {
+        var myVar = setInterval(myTimer, 1000);
+        $('#solar_total_label').text(solar_array_total + " KWh");
+        $('#load_total_label').text(load_array_total + " KWh");
+        $('#sell_total_label').text(sell_array_total + " KWh");
+        $('#grid_total_label').text(grid_array_total + " KWh");
+        $('#batt_total_label').text(batt_array_total + " KWh");
+        $(".button-collapse").sideNav();
+    });
+
+    var ctx = document.getElementById("myChart");
+    var TIMES = ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"];
+    var config;
+
+    config = {
+        type: 'line',
+        data: {
+            labels: TIMES,
+            datasets: [{
+                label: "Solar",
+                backgroundColor: "#ffcc00",
+                borderColor: "#ffcc00", //window.chartColors.blue,
+                data: solar_array,
+
+
+                fill: false,
+            }, {
+                label: "Load",
+                backgroundColor: "#ff704d",
+                borderColor: "#ff704d",
+                data: load_array,
+                fill: false,
+            }, {
+                label: "Grid Sell",
+                backgroundColor: "#6699ff",
+                borderColor: "#6699ff",
+                data: sell_array,
+                fill: false,
+
+            }, {
+
+                label: "Grid Use",
+                backgroundColor: "#0066ff",
+                borderColor: "#0066ff",
+                data: grid_array,
+                fill: false,
+            }, {
+
+                label: "Battery",
+                backgroundColor: "#79d2a6",
+                borderColor: "#79d2a6",
+                data: batt_array,
+                fill: false,
+            }]
+        },
+        options: {
+            tooltips: {
+                mode: 'x'
+            },
+            maintainAspectRatio: false,
+            responsive: true,
+            title: {
+                display: false //,
+                    //text: chart_title,
+                    //fontSize: 25
+            },
+            scales: {
+                yAxes: [{
+                    gridLines: {
+                        //drawBorder: false,
+                        //color: ['pink', 'red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'purple']
+                    },
+                    ticks: {
+                        min: 0,
+                        //max: 32,
+                        stepSize: 2
+                    }
+                }]
+            }
+        }
+    };
+    var chart = new Chart(ctx, config);
+    var label_grid_status = document.getElementById("grid_status");
+    var label_grid_volt = document.getElementById("grid_volt");
+    var label_grid_amp = document.getElementById("grid_amp");
+    var label_grid_watt = document.getElementById("grid_watt");
+    var label_grid_today = document.getElementById("grid_today");
+
+    var label_load_status = document.getElementById("load_status");
+    var label_load_volt = document.getElementById("load_volt");
+    var label_load_amp = document.getElementById("load_amp");
+    var label_load_watt = document.getElementById("load_watt");
+    var label_load_today = document.getElementById("load_today");
+
+    var label_solar_status = document.getElementById("solar_status");
+    var label_solar_volt = document.getElementById("solar_volt");
+    var label_solar_amp = document.getElementById("solar_amp");
+    var label_solar_watt = document.getElementById("solar_watt");
+    var label_solar_today = document.getElementById("solar_today");
+
+    var label_batt_status = document.getElementById("batt_status");
+    var label_batt_volt = document.getElementById("batt_volt");
+    var label_batt_amp = document.getElementById("batt_amp");
+    var label_batt_watt = document.getElementById("batt_watt");
+    var label_batt_today = document.getElementById("batt_today");
+
+    var label_solar_today_big = document.getElementById("solar_total_label");
+    var label_load_today_big = document.getElementById("load_total_label");
+    var label_sell_today_big = document.getElementById("sell_total_label");
+    var label_grid_today_big = document.getElementById("grid_total_label");
+    var label_batt_today_big = document.getElementById("batt_total_label");
+    var chart_title = document.getElementById("chartname");
+
+    var grid_total = 0,
+        load_total = 0,
+        solar_total = 0,
+        batt_total = 0;
+    grid_amp = 0;
+    var grid_volt = 0,
+        load_volt = 0,
+        solar_volt = 0,
+        batt_volt = 0;
+    grid_volt = 0;
+    var grid_amp = 0,
+        load_amp = 0,
+        solar_amp = 0,
+        batt_amp = 0;
+    grid_amp = 0;
+    var grid_watt = 0,
+        load_watt = 0,
+        solar_watt = 0,
+        batt_watt = 0;
+    grid_watt = 0;
+
+
+    function myTimer() {
+
+        //rand_load();
+        //rand_solar();
+        //rand_grid();
+        /*
+        config.data.datasets.forEach(function(dataset) {
+            dataset.data.push(randomScalingFactor());
+        });
+        chart.update();
+        */
+
+        //daylabel.innerHTML = "(5/30) 오후 12:30:42" //"(" + (d.getMonth() + 1) + "/" + d.getDate() + ") " + d.toLocaleTimeString();
+    }
+
+    var total = {
+        solar: 0,
+        ph1_load: 0,
+        ph2_load: 0,
+        ph3_load: 0,
+        ph1_power: 0,
+        ph2_power: 0,
+        ph3_power: 0,
+        battery: 0,
+        arr_solar: [],
+        arr_datetimes: [],
+        arr_ph1_load: [],
+        arr_ph2_load: [],
+        arr_ph3_load: [],
+        arr_ph1_power: [],
+        arr_ph2_power: [],
+        arr_ph3_power: [],
+        arr_battery: []
+    };
+
+    $("#date_day_button").click(function() {
+        console.log("date pick!");
+        var getday = $("#date_day").val();
+        if (getday.length > 3) {
+            var geturl = document.location.origin + "/log_day";
+            //var geturl = "http://snpg.iptime.org:8080/log_day";
+            geturl += "?date=" + getday;
+            console.log(geturl);
+            $.getJSON(geturl, function(data, status) {
+                //요기서 응답을 처리한당
+                total = data;
+                var i;
+                var mmt;
+                for (i = 0; i < total.arr_datetimes.length; i++) {
+                    mmt = moment(total.arr_datetimes[i]);
+                    total.arr_datetimes[i] = mmt.format('LT');
+                }
+                //chart.options.title.text = mmt.format('L') + " 전력량(KWh)";
+                chart_title.innerHTML = mmt.format('L') + " LOG (KWh)";
+
+                chart.data.labels = total.arr_datetimes;
+                // grid current status
+
+                label_solar_today_big.innerHTML = (total.solar / 1000).toFixed(2) + " KWh";
+                label_load_today_big.innerHTML = ((total.ph1_load + total.ph2_load + total.ph3_load) / 1000).toFixed(2) + " KWh";
+                //label_sell_today_big.innerHTML = "0.000KWh"
+                label_grid_today_big.innerHTML = ((total.ph1_power + total.ph2_power + total.ph3_power) / 1000).toFixed(2) + " KWh";
+
+                // 그래프에 넣는다.
+                // 태양광
+                var i;
+                for (i = 0; i < total.arr_solar.length; i++)
+                    total.arr_solar[i] = (Math.round(total.arr_solar[i]) / 1000);
+                chart.data.datasets[0].data = total.arr_solar;
+                // 부하
+                var tmp, tmp2 = [];
+                for (i = 0; i < total.arr_ph1_load.length; i++) {
+                    tmp = (total.arr_ph1_load[i] + total.arr_ph2_load[i] + total.arr_ph3_load[i]);
+                    tmp2[i] = (Math.round(tmp) / 1000);
+                }
+                chart.data.datasets[1].data = tmp2;
+                // 그리드 사용량
+                tmp2 = [];
+                for (i = 0; i < total.arr_ph1_power.length; i++) {
+                    tmp = (total.arr_ph1_power[i] + total.arr_ph2_power[i] + total.arr_ph3_power[i]);
+                    tmp2[i] = (Math.round(tmp) / 1000);
+                }
+                chart.data.datasets[3].data = tmp2;
+                // 이차전지
+                tmp2 = [];
+                for (i = 0; i < total.arr_battery.length; i++) {
+                    //tmp = (batt_array_total[i]/10).toFixed(2);
+                    tmp2[i] = total.arr_battery[i] / 5;
+                }
+                chart.data.datasets[4].data = tmp2;
+                //chart.options.title.text = dd.getFullYear() +"/" + (dd.getMonth()+1) + "/" + dd.getDay() + "일 실시간 전력량(KWh)";
+
+                chart.update();
+            });
+        } else
+            console.log("date not selected");
+    });
+
+    $("#date_month_button").click(function() {
+        console.log("month pick!");
+        var getday = $("#date_month").val();
+        getday = getday.replace("월", "_");
+        if (getday.length > 3) {
+            var geturl = "http://" + window.location.host + "/log_month";
+            geturl += "?date=" + getday;
+            console.log(geturl);
+            $.getJSON(geturl, function(data, status) {
+                //요기서 응답을 처리한당
+                total = data;
+                var i;
+                var mmt;
+                for (i = 0; i < total.arr_datetimes.length; i++) {
+                    mmt = moment(total.arr_datetimes[i]);
+                    total.arr_datetimes[i] = mmt.format('LT');
+                }
+                //chart.options.title.text = mmt.format('L') + " 전력량(KWh)";
+                chart_title.innerHTML = mmt.format('L') + " LOG (KWh)";
+
+                chart.data.labels = total.arr_datetimes;
+                // grid current status
+
+                label_solar_today_big.innerHTML = (total.solar / 1000).toFixed(2) + " KWh";
+                label_load_today_big.innerHTML = ((total.ph1_load + total.ph2_load + total.ph3_load) / 1000).toFixed(2) + " KWh";
+                //label_sell_today_big.innerHTML = "0.000KWh"
+                label_grid_today_big.innerHTML = ((total.ph1_power + total.ph2_power + total.ph3_power) / 1000).toFixed(2) + " KWh";
+
+                // 그래프에 넣는다.
+                // 태양광
+                var i;
+                for (i = 0; i < total.arr_solar.length; i++)
+                    total.arr_solar[i] = (Math.round(total.arr_solar[i]) / 1000);
+                chart.data.datasets[0].data = total.arr_solar;
+                // 부하
+                var tmp, tmp2 = [];
+                for (i = 0; i < total.arr_ph1_load.length; i++) {
+                    tmp = (total.arr_ph1_load[i] + total.arr_ph2_load[i] + total.arr_ph3_load[i]);
+                    tmp2[i] = (Math.round(tmp) / 1000);
+                }
+                chart.data.datasets[1].data = tmp2;
+                // 그리드 사용량
+                tmp2 = [];
+                for (i = 0; i < total.arr_ph1_power.length; i++) {
+                    tmp = (total.arr_ph1_power[i] + total.arr_ph2_power[i] + total.arr_ph3_power[i]);
+                    tmp2[i] = (Math.round(tmp) / 1000);
+                }
+                chart.data.datasets[3].data = tmp2;
+                // 이차전지
+                tmp2 = [];
+                for (i = 0; i < total.arr_battery.length; i++) {
+                    //tmp = (batt_array_total[i]/10).toFixed(2);
+                    tmp2[i] = total.arr_battery[i] / 5;
+                }
+                chart.data.datasets[4].data = tmp2;
+                //chart.options.title.text = dd.getFullYear() +"/" + (dd.getMonth()+1) + "/" + dd.getDay() + "일 실시간 전력량(KWh)";
+
+                chart.update();
+            });
+        } else
+            console.log("date not selected");
+    });
+
+    $("#date_year_button").click(function() {
+        console.log("year pick!");
+    });
+
+    window.randomScalingFactor = function() {
+        //return (Math.random() > 0.5 ? 1.0 : -1.0) * Math.round(Math.random() * 100);
+        return (Math.round(Math.random() * 100));
+    }
+</script>
+
+
+
+</html>
