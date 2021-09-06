@@ -1,10 +1,10 @@
 module.exports = {
     port_opti: '/dev/serial0', //'/dev/ttyUSB2',
     //port_batt: '/dev/ttyUSB1', //'/dev/ttyUSB0',
-    port_batt1: '/dev/ttyUSB0',
     port_pm_grid: '/dev/ttyUSB1', //'/dev/ttyUSB3',
     port_pm_load: '/dev/ttyUSB2', //'/dev/ttyUSB1',
-    battery_count: 2,
+    num_of_batt: 1,                                                         // [20210906 Eugene] 배터리 모듈 분리 및 모듈 데이터 활용
+    port_batt: ['COM18', 'COM19', '/dev/ttyUSB2', '/dev/ttyUSB3'],          // [20210906 Eugene] 배터리 모듈 분리 및 모듈 데이터 활용
     ID: [01, 02],
 
     contract_power_kw: 40,

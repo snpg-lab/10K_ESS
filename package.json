@@ -9,16 +9,16 @@
   "author": "ihkim",
   "license": "ISC",
   "dependencies": {
-    "bluebird": "^3.7.1",
+    "bluebird": "^3.7.2",
     "cors": "^2.8.5",
     "crc": "^3.8.0",
     "express": "^4.17.1",
     "keypress": "^0.2.1",
-    "modbus-serial": "^5.4.1",
-    "moment": "^2.24.0",
-    "mongodb": "^2.2.36",
-    "mongoose": "^4.13.19",
-    "npm": "^5.10.0",
-    "serialport": "^5.0.0"
+    "modbus-serial": "^8.0.4",
+    "moment": "^2.29.1",
+    "mongodb": "^4.1.1",
+    "mongoose": "^6.0.4",
+    "npm": "^7.22.0",
+    "serialport": "^9.2.1"
   }
 }

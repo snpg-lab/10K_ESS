@@ -6,6 +6,7 @@ var express = require('express');
 var path = require('path');
 var app = express();
 var CORS = require('cors')();
+var battery = require('./battery_jbd.js');          // [20210906 Eugene] 배터리 모듈 분리 및 모듈 데이터 활용
 
 app.use(CORS);
 
@@ -41,12 +42,19 @@ app.post('/send_schedule', function(request, response) {
 
 });
 
+// [20210906 Eugene] 배터리 모듈 분리 및 모듈 데이터 활용
 // BMS 상태 알려줌 (BMS가 2개 있는 상황)
+app.get("/current_bms", function(req, res) {
+    var re = battery.getJSON();
+    res.json(re);
+});
+
+/*// BMS 상태 알려줌 (BMS가 2개 있는 상황)
 app.get("/current_bms", function(req, res) {
     var re = [];
     re.push(value_bms1);
     res.json(re);
-});
+});*/
 
 app.get("/set_operation", function(req, res) {
     var date = new Date();
@@ -57,7 +65,7 @@ app.get("/set_operation", function(req, res) {
     console.log(date + " set_operation : " + mode + "/" + pw);
     if (mode == 'charge') {
         pw = pw * 1;
-        if (pw > set.battery_count * 1500) pw = set.battery_count * 1500;
+        if (pw > set.num_of_batt * 1500) pw = set.num_of_batt * 1500;
         run.pwr = pw;
         mode_charge(pw);
         re = {
@@ -69,7 +77,7 @@ app.get("/set_operation", function(req, res) {
         if (SOC_Now > 10) // 배터리 용량이 10%이상일 경우에만 방전을 수행한다.
         {
             pw = pw * 1;
-            if (pw > set.battery_count * 1500) pw = set.battery_count * 1500;
+            if (pw > set.num_of_batt * 1500) pw = set.num_of_batt * 1500;
             run.pwr = pw;
             mode_discharge(pw);
             re = {
@@ -672,230 +680,6 @@ port_opti.on('data', function(data) {
     });
 });
 
-var port_bat1 = new SerialPort(set.port_batt1, {
-    baudRate: 9600
-});
-
-// Open errors will be emitted as an error event 
-port_bat1.on('error', function(err) {
-    console.log(moment().format('YYYY-MM-DD HH:mm:ss / ') + "port_bat1 " + 'Error: ', err.message);
-});
-
-port_bat1.on('data', function(data) {
-    try {
-        data.forEach(function(el, idx, arr) {
-            /*if (value_bms1.Alive > 100)
-                process.stdout.write(btoh(el));*/
-            //process.stdout.write(btoh(el));
-            func_bms1_rcv(el);
-            //console.log(el);
-            //console.log('port OK!!!!!!!!!!!!!!!!!!!!!!!!!!');
-        });
-    } catch (err) {
-        console.log(moment().format('YYYY-MM-DD HH:mm:ss / ') + "batbms on data error " + err);
-    }
-
-});
-
-var value_bms1 = {
-    current: 0,
-    total_voltage: 0,
-    cell_volt: [],
-    Balanced_state: 0,
-    Balanced_state_msg: [],
-    Protection_state: 0,
-    Protection_state_msg: [],
-    MOSFET_Charge: 0,
-    MOSFET_Discharge: 0,
-    RSOC: 0,
-    NTC_quantity: 0,
-    NTC_content: [],
-    Residual_capacity: 0,
-    Nominal_capacity: 0,
-    Cycle_times: 0,
-    Battery_serial: 0,
-    Date_of_manufacture: 0,
-    BMS_Software_version: 0,
-    Alive: 999
-};
-
-// Battery bms 데이터 수신용 변수들
-var bms1_accu = []; // 데이터 수신 및 누적하는 함수
-var bms1_stage = 0; // 데이터 수신 스테이지
-var bms1_rcv_count = 0; // 데이터 실제 수신 갯수
-var bms1_length; // 데이터 길이
-var bms1_command = 0;
-var bms1_crc1 = null; // CRC1
-var bms1_crc2 = null;
-
-function func_bms1_rcv(rcv) {
-    //    HD CM LH LL 
-    //3번 DD 03 00 1F 14 B1 FD 4C 46 51 4E 20 00 01 26 54 00 00 00 00 00 00 20 5A 03 10 04 0B 14 0B 35 0B 80 0B 61 FA 6C 77
-    //4번 DD 04 00 20 0C F2 0C F4 0C F1 0C F0 0C F1 0C F1 0C F1 0C EE 0C EC 0C E7 0C EE 0C F1 0C EF 0C F2 0C F5 0C E7 F0 29 77
-    //console.log(btoh(rcv));
-
-    //rcv_char = String.fromCharCode(rcv);
-    // stage 0 : waiting Header 0xdd
-    if (bms1_stage == 0 && rcv == 0xdd) {
-        bms1_stage = 1;
-        bms1_accu = [];
-        bms1_length = 0;
-        bms1_rcv_count = 0;
-        bms1_crc1 = null;
-        bms1_crc2 = null;
-        //console.log("0!");
-    }
-    // stage 1 : wating data command
-    else if (bms1_stage == 1) {
-        //batt1_accu.push(rcv);
-        bms1_command = rcv;
-        bms1_stage = 2;
-        //console.log("2!");
-    }
-    // stage 2 : wating data unknown (high bit of length?)
-    else if (bms1_stage == 2) {
-        bms1_accu.push(rcv);
-        bms1_stage = 3;
-        //console.log("2!");
-    }
-    // stage 3 : wating data length
-    else if (bms1_stage == 3) {
-        bms1_length = rcv;
-        bms1_accu.push(rcv);
-        bms1_stage = 4;
-        //console.log("3!");
-    }
-    // stage 4 : waiting data and finish by crc1
-    else if (bms1_stage == 4) {
-        //console.log("4!");
-        if (bms1_rcv_count < bms1_length) {
-            bms1_rcv_count++;
-            bms1_accu.push(rcv);
-        } else {
-            bms1_stage = 5;
-            bms1_crc1 = rcv;
-        }
-    }
-    // stage 5 : waiting crc2
-    else if (bms1_stage == 5) {
-        //console.log("5!");
-        //batt1_accu.push(rcv);
-        bms1_crc2 = rcv;
-        bms1_stage = 6;
-    }
-    else if (bms1_stage == 6 && rcv == 0x77) {
-        //console.log("6!");
-        var i = 0;
-        var ac = 0;
-        var calcresult = 0;
-        //cmd code에서 데이터까지 다 더한 값을 FFFF에 빼고, 1을 더한다. 
-        for (; i < bms1_accu.length; i++) {
-            ac += bms1_accu[i];
-        }
-        calcresult = 0xffff - ac + 1;
-
-        var crcresult = bms1_crc1 * 256 + bms1_crc2;
-        if (crcresult == calcresult) {
-            //console.log("@@from:" + batt1_from.toString(16) + "/to:" + batt1_to.toString(16));
-            bms1_parser(bms1_accu, bms1_command);
-        } else {
-            console.log('\r\n' + crcresult + '/' + calcresult);
-            console.log("batt1 crc error");
-        }
-        bms1_accu = [];
-        bms1_stage = 0;
-    } else {
-        console.log("batt1 " + bms1_stage + "!?");
-        bms1_stage = 0;
-        bms1_accu = [];
-    }
-}
-
-function bms1_parser(batt1_accu, batt1_command) {
-    //console.log("batt1 /" + batt1_command);
-    if (batt1_command == 3) {
-        let tmp;
-        tmp = bb(batt1_accu, 1);
-        value_bms1.total_voltage = tofn(sint(tmp) * 0.01, 2);
-        tmp = bb(batt1_accu, 2);
-        value_bms1.current = tofn(sint(tmp) * 0.01, 2);
-        tmp = bb(batt1_accu, 3);
-        value_bms1.Residual_capacity = tofn(sint(tmp) * 0.01, 2);
-        tmp = bb(batt1_accu, 4);
-        value_bms1.Nominal_capacity = tofn(sint(tmp) * 0.01, 2);
-        tmp = bb(batt1_accu, 5);
-        value_bms1.Cycle_times = tofn(sint(tmp));
-        tmp = bb(batt1_accu, 6);
-        value_bms1.Date_of_manufacture = (2000 + (tmp >> 9)).toString() + "-" + ((tmp >> 5) & 0x0f).toString() + "-" + (tmp & 0x1f).toString();
-        value_bms1.Balanced_state = (bb(batt1_accu, 8) * 256) + bb(batt1_accu, 7);
-        value_bms1.Balanced_state_msg = [];
-        if ((value_bms1.Balanced_state & 0x01) == 0x01) value_bms1.Balanced_state_msg.push("1");
-        if ((value_bms1.Balanced_state & 0x02) == 0x02) value_bms1.Balanced_state_msg.push("2");
-        if ((value_bms1.Balanced_state & 0x04) == 0x04) value_bms1.Balanced_state_msg.push("3");
-        if ((value_bms1.Balanced_state & 0x08) == 0x08) value_bms1.Balanced_state_msg.push("4");
-        if ((value_bms1.Balanced_state & 0x10) == 0x10) value_bms1.Balanced_state_msg.push("5");
-        if ((value_bms1.Balanced_state & 0x20) == 0x20) value_bms1.Balanced_state_msg.push("6");
-        if ((value_bms1.Balanced_state & 0x40) == 0x40) value_bms1.Balanced_state_msg.push("7");
-        if ((value_bms1.Balanced_state & 0x80) == 0x80) value_bms1.Balanced_state_msg.push("8");
-        if ((value_bms1.Balanced_state & 0x100) == 0x100) value_bms1.Balanced_state_msg.push("9");
-        if ((value_bms1.Balanced_state & 0x200) == 0x200) value_bms1.Balanced_state_msg.push("10");
-        if ((value_bms1.Balanced_state & 0x400) == 0x400) value_bms1.Balanced_state_msg.push("11");
-        if ((value_bms1.Balanced_state & 0x800) == 0x800) value_bms1.Balanced_state_msg.push("12");
-        if ((value_bms1.Balanced_state & 0x1000) == 0x1000) value_bms1.Balanced_state_msg.push("13");
-        if ((value_bms1.Balanced_state & 0x2000) == 0x2000) value_bms1.Balanced_state_msg.push("14");
-        if ((value_bms1.Balanced_state & 0x4000) == 0x4000) value_bms1.Balanced_state_msg.push("15");
-        if ((value_bms1.Balanced_state & 0x8000) == 0x8000) value_bms1.Balanced_state_msg.push("16");
-        value_bms1.Balanced_state = value_bms1.Balanced_state.toString(2);
-
-        tmp = bb(batt1_accu, 9);
-        value_bms1.Protection_state = tmp;
-        value_bms1.Protection_state_msg = [];
-        if ((value_bms1.Protection_state & 0x01) == 0x01) value_bms1.Protection_state_msg.push("Single overvoltage protection");
-        if ((value_bms1.Protection_state & 0x02) == 0x02) value_bms1.Protection_state_msg.push("Single undervoltage protection");
-        if ((value_bms1.Protection_state & 0x04) == 0x04) value_bms1.Protection_state_msg.push("Whole group overvoltage protection");
-        if ((value_bms1.Protection_state & 0x08) == 0x08) value_bms1.Protection_state_msg.push("Whole group undervoltage protection");
-        if ((value_bms1.Protection_state & 0x10) == 0x10) value_bms1.Protection_state_msg.push("(Charge) over temperature protection");
-        if ((value_bms1.Protection_state & 0x20) == 0x20) value_bms1.Protection_state_msg.push("(Charge) under temperature protection");
-        if ((value_bms1.Protection_state & 0x40) == 0x40) value_bms1.Protection_state_msg.push("(discharge) over temperature protection");
-        if ((value_bms1.Protection_state & 0x80) == 0x80) value_bms1.Protection_state_msg.push("(discharge) under temperature protection");
-        if ((value_bms1.Protection_state & 0x100) == 0x100) value_bms1.Protection_state_msg.push("(charge) over current protect");
-        if ((value_bms1.Protection_state & 0x200) == 0x200) value_bms1.Protection_state_msg.push("(discharge) over current protect");
-        if ((value_bms1.Protection_state & 0x400) == 0x400) value_bms1.Protection_state_msg.push("short protect");
-        if ((value_bms1.Protection_state & 0x800) == 0x800) value_bms1.Protection_state_msg.push("Front detection IC error");
-        if ((value_bms1.Protection_state & 0x1000) == 0x1000) value_bms1.Protection_state_msg.push("Software lock MOS");
-        value_bms1.Protection_state = tmp.toString(2);
-        value_bms1.BMS_Software_version = batt1_accu[20];
-        value_bms1.RSOC = batt1_accu[21];
-        if (batt1_accu[22] & 1 == 1) value_bms1.MOSFET_Charge = 1;
-        else value_bms1.MOSFET_Charge = 0;
-        if (batt1_accu[22] & 2 == 2) value_bms1.MOSFET_Discharge = 1;
-        else value_bms1.MOSFET_Discharge = 0;
-        value_bms1.Battery_serial = batt1_accu[23];
-        value_bms1.NTC_quantity = batt1_accu[24];
-        value_bms1.NTC_content = [];
-
-        for (let i = 0; i < value_bms1.NTC_quantity * 2; i += 2) {
-            let tt = ((batt1_accu[25 + i] * 256) + batt1_accu[26 + i]);
-            tt = tt - 2731;
-            value_bms1.NTC_content.push(tof(tt * 0.1));
-        }
-        value_bms1.Alive = 0;
-        //console.log(value_bms1);
-
-    } else if (batt1_command == 4) {
-        value_bms1.cell_volt = [];
-        for (let i = 1; i <= value_bms1.Battery_serial; i++) {
-            let tt = bb(batt1_accu, i);
-            value_bms1.cell_volt.push(tofn(tt / 1000, 3));
-        }
-        value_bms1.Alive = 0;
-        //console.log(value_bms1);
-    }
-}
-
-function bb(ar, num) { // batt 데이터 추출
-    return ((ar[(2 * num)] * 256) + ar[(2 * num) + 1]);
-}
 /*
 port.open(function(err) {
     if (err) {
@@ -1518,6 +1302,7 @@ function send_opti_with_crc(sendstr) {
 
 // create an empty modbus client 
 var ModbusRTU = require("modbus-serial");
+const { min } = require('moment');
 //var client_modbus_grid = new ModbusRTU();
 
 // open connection to a serial port 
@@ -1555,34 +1340,6 @@ setInterval(function() {
         
     } catch (err) {
         console.log(err);
-    }
-}, 500);
-
-// battery interval
-var tickbat = 0;
-// optisolar 수신 ps와 gs 0.5초 간격으로
-setInterval(function() {
-    try {
-        let tmp;
-        //console.log("tickbat = " + tickbat);
-        if (tickbat == 0) {
-            tickbat = 1;
-            tmp = [0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77];
-            //console.log(" 3보낸다!");
-            //port_bat1.write(tmp); // query power status
-            port_bat1.write(tmp); // query power status
-            //port_bat2.write(tmp); // query power status
-        } else if (tickbat == 1) {
-            tickbat = 0;
-            tmp = [0xDD, 0xA5, 0x04, 0x00, 0xFF, 0xFC, 0x77];
-            //console.log(" 4보낸다!");
-            //port_bat1.write(tmp); // query power status
-            port_bat1.write(tmp); // query power status
-            //port_bat2.write(tmp); // query power status
-        }
-        //port_bat2.write(tmp); // query power status
-    } catch (err) {
-        console.log(moment().format('YYYY-MM-DD HH:mm:ss / ') + "bat tick error " + err);
     }
 }, 500);
 
@@ -2148,11 +1905,23 @@ setInterval(function() {
 var SOC_Now = 0;
 
 function socupdate() {
+    /*
     SOC_Now = 0;
     for (var i = 0; i < set.battery_count; i++) {
         //SOC_Now += (bm[i].SOC / set.battery_count);
     }
     SOC_Now = tofn(value_bms1.Residual_capacity, 3); //tofn(SOC_Now, 3);
+    */
+    // [20210906 Eugene] 배터리 모듈 분리 및 모듈 데이터 활용
+    var total = 0;
+    for (var i = 0; i < set.num_of_batt; i++) {
+        total += battery.getJSON()[i].Residual_capacity;
+        //console.log(battery.getJSON()[i].Residual_capacity);
+    }
+    if(set.num_of_batt != 0)
+        SOC_Now = total / set.num_of_batt;
+    else
+        SOC_Now = total;
 }
 
 // 고정폭 길이의 숫자 문자열을 만든다. 고정폭은 3
